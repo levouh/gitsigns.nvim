@@ -79,7 +79,7 @@ local function apply_win_signs(bufnr: integer, pending: {integer:Sign}, top: int
     top = top or vim.fn.line('w0')
     bot = bot or vim.fn.line('w$')
   else
-    top = top or 0
+    top = top or 1
     bot = bot or vim.fn.line('$')
   end
 
@@ -449,12 +449,21 @@ local function on_lines(buf: integer, last_orig: integer, last_new: integer): bo
     return true
   end
 
-  -- If lines are removed, make sure to immediately remove the signs
-  -- This is only has noticeable effect on large files
+  -- Speculate on future signs. It's not a big deal if we speculate incorrectly
+  -- as update() will place all the correct signs.  This has noticeable effect
+  -- on large files
   if last_new < last_orig then
+    -- If lines are removed, make sure to immediately remove the signs
     for i = last_new+1, last_orig do
       signs.remove(buf, i)
     end
+  elseif last_new > last_orig then
+    -- If lines are added, make sure to immediately add the signs
+    local to_add = {}
+    for i = last_orig+1, last_new do
+      to_add[i] = {type='add', count=0}
+    end
+    signs.add(config, buf, to_add)
   end
 
   update_debounced(buf)
@@ -659,7 +668,7 @@ local function setup_decoration_provider()
       if not bcache or not bcache.pending_signs then
         return
       end
-      apply_win_signs(bufnr, bcache.pending_signs, top, bot)
+      apply_win_signs(bufnr, bcache.pending_signs, top+1, bot+1)
     end
   })
 end

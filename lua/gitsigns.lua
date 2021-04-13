@@ -79,7 +79,7 @@ local function apply_win_signs(bufnr, pending, top, bot)
       top = top or vim.fn.line('w0')
       bot = bot or vim.fn.line('w$')
    else
-      top = top or 0
+      top = top or 1
       bot = bot or vim.fn.line('$')
    end
 
@@ -451,10 +451,19 @@ local function on_lines(buf, last_orig, last_new)
 
 
 
+
    if last_new < last_orig then
+
       for i = last_new + 1, last_orig do
          signs.remove(buf, i)
       end
+   elseif last_new > last_orig then
+
+      local to_add = {}
+      for i = last_orig + 1, last_new do
+         to_add[i] = { type = 'add', count = 0 }
+      end
+      signs.add(config, buf, to_add)
    end
 
    update_debounced(buf)
@@ -659,7 +668,7 @@ local function setup_decoration_provider()
          if not bcache or not bcache.pending_signs then
             return
          end
-         apply_win_signs(bufnr, bcache.pending_signs, top, bot)
+         apply_win_signs(bufnr, bcache.pending_signs, top + 1, bot + 1)
       end,
    })
 end
